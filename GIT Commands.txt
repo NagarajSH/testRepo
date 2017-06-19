@@ -1,0 +1,389 @@
+GIT Commands:
+https://stackoverflow.com/questions/22620393/various-ways-to-remove-local-git-changes
+	
+I just cloned a git repository and checked out a branch. I worked on it, and then decided to remove all my local changes, as I wanted the original copy.
+
+In short, I had to do the following two commands to remove my local changes
+
+git checkout .
+
+git clean -f
+My question is,
+
+(1) Is this the correct approach in getting rid of local changes, or else please let me know the correct approach.
+
+(2) when do we use git reset --hard as i am able to reset even without this command
+
+Thanks
+
+*Solution : Major Edit(s): 03/26 : * Replaced many of vague terms with git specific terminology [tracked/untracked/staged/unstaged]
+
+There could be only three categories of files when we make local changes:
+
+Type 1. Staged Tracked files
+
+Type 2. Unstaged Tracked files
+
+Type 3. Unstaged UnTracked files a.k.a UnTracked files
+Staged - Those that are moved to staging area/ Added to index
+Tracked - modified files
+UnTracked - new files. Always unstaged. If staged, that means they are tracked.
+What each commands do:
+
+git checkout . - Removes Unstaged Tracked files ONLY [Type 2]
+git clean -f - Removes Unstaged UnTracked files ONLY [Type 3]
+git reset --hard - Removes Staged Tracked and UnStaged Tracked files ONLY[Type 1, Type 2]
+git stash -u - Removes all changes [Type 1, Type 2, Type 3]
+Conclusion:
+
+It's clear that we can use either
+
+(1) combination of `git clean -f` and `git reset --hard` 
+OR
+
+(2) `git stash -u`
+to achieve the desired result.
+
+Note: Stashing, as the word means 'Store (something) safely and secretly in a specified place.' This can always be retrieved using git stash pop. So choosing between the above two options is developer's call.
++++++++++++++++++++++++++++++++++++++++++++
+Edit: 03/27
+
+I thought it's worth putting the 'beware' note to git clean -f
+
+git clean -f
+
+There is no going back. Use -n or --dry-run to preview the damage you'll do.
+
+If you want to also remove directories, run git clean -f -d
+
+If you just want to remove ignored files, run git clean -f -X
+
+If you want to remove ignored as well as non-ignored files, run git clean -f -x
+
+reference : more on git clean : How to remove local (untracked) files from the current Git working tree?
++++++++++++++++++++++++++++++++++++++++++++
+Hard reset:
+==========
+
+$ git reset --hard [HEAD]
+completely remove all staged and unstaged changes to tracked files.
+
+I find myself often using hard resetting, when I'm like "just undo everything like if I had done a complete re-clone from the remote". In your case, where you just want your repo pristine, this would work.
+
+Clean:
+======
+git clean [-f]
+Remove files that are not tracked.
+
+For removing temporary files, but keep staged and unstaged changes to already tracked files. Most times, I would probably end up making an ignore-rule instead of repeatedly cleaning - e.g. for the bin/obj folders in a C# project, which you would usually want to exclude from your repo to save space, or something like that.
+
+The -f (force) option will also remove files, that are not tracked and are also being ignored by git though ignore-rule. In the case above, with an ignore-rule to never track the bin/obj folders, even though these folders are being ignored by git, using the force-option will remove them from your file system. I've sporadically seen a use for this, e.g. when scripting deployment, and you want to clean your code before deploying, zipping or whatever.
+
+Git clean will not touch files, that are already being tracked.
+
+Checkout "dot":
+===============
+git checkout .
+I had actually never seen this notation before reading your post. I'm having a hard time finding documentation for this (maybe someone can help), but from playing around a bit, it looks like it means:
+
+"undo all changes in my working tree".
+
+I.e. undo unstaged changes in tracked files. It apparently doesn't touch staged changes and leaves untracked files alone.
+
+Stashing:
+=========
+Some answers mention stashing. As the wording implies, you would probably use stashing when you are in the middle of something (not ready for a commit), and you have to temporarily switch branches or somehow work on another state of your code, later to return to your "messy desk". I don't see this applies to your question, but it's definitely handy.
+
+To sum up:
+==========
+Generally, if you are confident you have committed and maybe pushed to a remote important changes, if you are just playing around or the like, using git reset --hard HEAD followed by git clean -f will definitively cleanse your code to the state, it would be in, had it just been cloned and checked out from a branch. It's really important to emphasize, that the resetting will also remove staged, but uncommitted changes. It will wipe everything that has not been committed (except untracked files, in which case, use clean).
+
+All the other commands are there to facilitate more complex scenarios, where a granularity of "undoing stuff" is needed :)
+
+I feel, your question #1 is covered, but lastly, to conclude on #2: the reason you never found the need to use git reset --hard was that you had never staged anything. Had you staged a change, neither git checkout . nor git clean -f would have reverted that.
++++++++++++++++++++++++++++++++++++++++++++
+https://stackoverflow.com/questions/1146973/how-do-i-revert-all-local-changes-in-git-managed-project-to-previous-state
+
+DANGER AHEAD: (please read the comments. Executing the command proposed in my answer might delete more than you want)
+
+to completely remove all files including directories I had to run
+
+git clean -f -d
+++++++++++++++++++++++++++++++++++++++++++++
+After reading a bunch of answers and trying them, I've found various edge cases that mean sometimes they don't fully clean the working copy.
+
+Here's my current bash script for doing it, which works all the time.
+
+#!/bin/sh
+git reset --hard
+git clean -f -d
+git checkout -- HEAD
+Run from working copy root directory.
+++++++++++++++++++++++++++++++++++++++++++++
+simply say
+
+git stash
+it will remove all your local chages. and you also can use later by saying
+
+git stash apply 
+++++++++++++++++++++++++++++++++++++++++++++=
+Re-clone:
+=========
+GIT=$(git rev-parse --show-toplevel)
+cd $GIT/..
+rm -rf $GIT
+git clone ...
+✅ Does delete local, non-pushed commits
+✅ Reverts changes you made to tracked files
+✅ Restores tracked files you deleted
+✅ Deletes files/dirs listed in .gitignore (like build files)
+✅ Deletes files/dirs that are not tracked and not in .gitignore
+😀 You wont forget this approach
+😔 Wastes bandwidth
+++
+Following are other commands I forget daily.
++
+Clean and reset:
+================
+git clean -f -d -x
+git reset --hard
+❌ Does NOT delete local, non-pushed commits
+✅ Reverts changes you made to tracked files
+✅ Restores tracked files you deleted
+✅ Deletes files/dirs listed in .gitignore (like build files)
+✅ Deletes files/dirs that are not tracked and not in .gitignore
+Clean:
+=====
+git clean -f -d -x
+❌ Does NOT delete local, non-pushed commits
+❌ Does NOT revert changes you made to tracked files
+❌ Does NOT restore tracked files you deleted
+✅ Deletes files/dirs listed in .gitignore (like build files)
+✅ Deletes files/dirs that are not tracked and not in .gitignore
+Reset:
+=====
+git reset --hard
+❌ Does NOT delete local, non-pushed commits
+✅ Reverts changes you made to tracked files
+✅ Restores tracked files you deleted
+❌ Deletes files/dirs listed in .gitignore (like build files)
+❌ Does NOT delete files/dirs that are not tracked and not in .gitignore
++++++++++++++++++++++++++++++++++++++++++++=:
+git stash --all
+
+which will remove everything but save it all in a stash. This stash can then later be used.
+
+However, if you truly DO want to remove all the files and clean your working directory, you should execute
+
+git clean -f -d
+
+This will remove any files and also any sub-directories that don't have any items as a result of the command. A smart thing to do before executing the git clean -f -d command is to run
+
+git clean -f -d -n
+which will show you a preview of what WILL be removed after executing git clean -f -d
+
+So here is a summary of your options from most aggressive to least aggressive
+
+Option 1: Remove all files locally(Most aggressive)
+
+git clean -f -d
+Option 2: Preview the above impact(Preview most aggressive)
+
+git clean -f -d -n
+Option 3: Stash all files (Least aggressive)
+
+`git stash --all` 
+++++++++++++++++++++++++++++++++++++++++++++=
+$ git stash list
+stash@{0}: WIP on master: 5002d47 our new homepage
+stash@{1}: WIP on master: 5002d47 our new homepage
+stash@{2}: WIP on master: 5002d47 our new homepage
+$ git stash save "add style to our site"
+Saved working directory and index state On master: add style to our site
+HEAD is now at 5002d47 our new homepage
+$ git stash list
+stash@{0}: On master: add style to our site
+stash@{1}: WIP on master: 5002d47 our new homepage
+stash@{2}: WIP on master: 5002d47 our new homepage
+$ git stash pop stash@{2}
+$ git stash show
+index.html | 1 +
+style.css | 3 +++
+2 files changed, 4 insertions(+)
+++
+Un-applying a Stash
+In some use case scenarios you might want to apply stashed changes, do some work, but then un-apply those changes that originally came from the stash. Git does not provide such a stash unapply command, but it is possible to achieve the effect by simply retrieving the patch associated with a stash and applying it in reverse:
+
+$ git stash show -p stash@{0} | git apply -R
+Again, if you don’t specify a stash, Git assumes the most recent stash:
+
+$ git stash show -p | git apply -R
+You may want to create an alias and effectively add a stash-unapply command to your Git. For example:
+
+$ git config --global alias.stash-unapply '!git stash show -p | git apply -R'
+$ git stash apply
+$ #... work work work
+$ git stash-unapply
+https://www.atlassian.com/git/tutorials/saving-changes#git-add
+https://www.atlassian.com/git/tutorials/syncing
+
+++++++++++++++++++++++++++++++++++++++++++++=
+Useful Commands:
+===============
+#check status
+
+git status
+#create a new local branch
+
+git checkout -b "branchname" 
+#commit local changes [two step process:- Add the file to the index, that means adding to the staging area. Then commit the files that are present in this staging area]
+
+git add <path to file>
+
+git commit -m "commit message"
+#the above command just create local branch and comitts to it. But it has not created in remote.
+#to create remote branch
+git push (remote) (branch)
+$ git push origin serverfix
+Counting objects: 24, done.
+Delta compression using up to 8 threads.
+Compressing objects: 100% (15/15), done.
+Writing objects: 100% (24/24), 1.91 KiB | 0 bytes/s, done.
+Total 24 (delta 2), reused 0 (delta 0)
+To https://github.com/schacon/simplegit
+ * [new branch]      serverfix -> serverfix
+ 
+#checkout some other local branch
+
+git checkout "local branch name"
+#remove all changes in local branch [Suppose you made some changes in local branch like adding new file or modifying existing file, or making a local commit, but no longer need that] git clean -d -f and git reset --hard [clean all local changes made to the local branch except if local commit]
+
+git stash -u also removes all changes
+
+Note: It's clear that we can use either (1) combination of git clean –d –f and git reset --hard OR (2) git stash -u to achieve the desired result.
+
+Note 1: Stashing, as the word means 'Store (something) safely and secretly in a specified place.' This can always be retreived using git stash pop. So choosing between the above two options is developer's call.
+
+Note 2: git reset --hard will delete working directory changes. Be sure to stash any local changes you want to keep before running this command.
+
+# Switch to the master branch and make sure you are up to date.
+
+git checkout master
+git fetch [this may be necessary (depending on your git config) to receive updates on origin/master ]
+
+git pull
+# Merge the feature branch into the master branch.
+
+git merge feature_branch
+# Reset the master branch to origin's state.
+
+git reset origin/master
+#Accidentally deleted a file from local , how to retrieve it back? Do a git status to get the complete filepath of the deleted resource
+
+git checkout branchname <file path name>
+that's it!
+
+#Merge master branch with someotherbranch
+
+git checkout master
+git merge someotherbranchname
+#rename local branch
+
+git branch -m old-branch-name new-branch-name
+#delete local branch
+
+git branch -D branch-name
+#delete remote branch
+
+git push origin :branch-name
+#revert a commit already pushed to a remote repository
+
+git revert hgytyz4567
+#branch from a previous commit using GIT
+
+git branch branchname <sha1-of-commit>
+#Change commit message of the most recent commit that's already been pushed to remote
+
+git commit --amend -m "new commit message"
+git push --force origin <branch-name>
+# Discarding all local commits on this branch [Removing local commits]
+
+In order to discard all local commits on this branch, to make the local branch identical to the "upstream" of this branch, simply run
+
+git reset --hard @{u}
+Reference: http://sethrobertson.github.io/GitFixUm/fixup.html or do git reset --hard origin/master [if local branch is master]
+
+# Revert a commit already pushed to a remote repository?
+
+$ git revert ab12cd15
+#Delete a previous commit from local branch and remote branch Case: You just commited a change to your local branch and immediately pushed to the remote branch, Suddenly realized , Oh no! I dont need this change. Now do what? git reset --hard HEAD~1 [for deleting that commit from local branch. 1 denotes the ONE commit you made]
+
+git push origin HEAD --force [both the commands must be executed. For deleting from remote branch]. branch means the currently checked out branch.
+
+# Remove local git merge: Case: I am on master branch and merged master branch with a newly working branch phase2
+
+$ git status
+On branch master
+
+$ git merge phase2  $ git status
+
+On branch master
+
+Your branch is ahead of 'origin/master' by 8 commits.
+
+Q: How to get rid of this local git merge? Tried git reset --hard and git clean -d -f Both didn't work. The only thing that worked are any of the below ones:
+
+$ git reset --hard origin/master
+
+or
+
+$ git reset --hard HEAD~8
+
+or
+
+$ git reset --hard 9a88396f51e2a068bb7 [sha commit code - this is the one that was present before all your merge commits happened]
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+1. When you don't want to keep your local changes at all.
+
+git reset --hard
+This command will completely remove all the local changes from your local repository. This is the best way to avoid conflicts during pull command, only if you don't want to keep your local changes at all.
+
+2. When you want to keep your local changes
+
+If you want to pull the new changes from remote and want to ignore the local changes during this pull then,
+
+git stash
+It will stash all the local changes, now you can pull the remote changes,
+
+git pull
+Now, you can bring back your local changes by,
+
+git stash pop
++++++++
+git push (remote) (branch):
+nrao2@BLRNRAO2163811 MINGW64 /d/Nagaraj/gitTest (hotfix)
+$ git push origin hotfix:hotfix
+Counting objects: 3, done.
+Delta compression using up to 4 threads.
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 1.40 KiB | 0 bytes/s, done.
+Total 3 (delta 0), reused 0 (delta 0)
+To https://github.com/NagarajSH/testRepo.git
+ * [new branch]      hotfix -> hotfix
+
+nrao2@BLRNRAO2163811 MINGW64 /d/Nagaraj/gitTest (hotfix)
+$ git branch -a
+  develop
+  featureOne
+* hotfix
+  master
+  new-feature
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/develop
+  remotes/origin/featureOne
+  remotes/origin/hotfix
+  remotes/origin/master
+
+nrao2@BLRNRAO2163811 MINGW64 /d/Nagaraj/gitTest (hotfix)
+$
