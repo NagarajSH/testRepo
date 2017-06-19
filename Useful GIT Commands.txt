@@ -1,0 +1,71 @@
+Useful Commands:
+===============
+#check status
+
+git status
+#create a new local branch
+
+git checkout -b "branchname" 
+#commit local changes [two step process:- Add the file to the index, that means adding to the staging area. Then commit the files that are present in this staging area]
+
+git add <path to file>
+
+git commit -m "commit message"
+#checkout some other local branch
+
+git checkout "local branch name"
+#remove all changes in local branch [Suppose you made some changes in local branch like adding new file or modifying existing file, or making a local commit, but no longer need that] git clean -d -f and git reset --hard [clean all local changes made to the local branch except if local commit]
+
+git stash -u also removes all changes
+
+Note: It's clear that we can use either (1) combination of git clean –d –f and git reset --hard OR (2) git stash -u to achieve the desired result.
+
+Note 1: Stashing, as the word means 'Store (something) safely and secretly in a specified place.' This can always be retreived using git stash pop. So choosing between the above two options is developer's call.
+
+Note 2: git reset --hard will delete working directory changes. Be sure to stash any local changes you want to keep before running this command.
+
+# Switch to the master branch and make sure you are up to date.
+
+git checkout master
+git fetch [this may be necessary (depending on your git config) to receive updates on origin/master ]
+
+git pull
+# Merge the feature branch into the master branch.
+
+git merge feature_branch
+# Reset the master branch to origin's state.
+
+git reset origin/master
+#Accidentally deleted a file from local , how to retrieve it back? Do a git status to get the complete filepath of the deleted resource
+
+git checkout branchname <file path name>
+that's it!
+
+#Merge master branch with someotherbranch
+
+git checkout master
+git merge someotherbranchname
+#rename local branch
+
+git branch -m old-branch-name new-branch-name
+#delete local branch
+
+git branch -D branch-name
+#delete remote branch
+
+git push origin :branch-name
+#revert a commit already pushed to a remote repository
+
+git revert hgytyz4567
+#branch from a previous commit using GIT
+
+git branch branchname <sha1-of-commit>
+#Change commit message of the most recent commit that's already been pushed to remote
+
+git commit --amend -m "new commit message"
+git push --force origin <branch-name>
+# Discarding all local commits on this branch [Removing local commits]
+
+In order to discard all local commits on this branch, to make the local branch identical to the "upstream" of this branch, simply run
+
+git reset --hard @{u}
