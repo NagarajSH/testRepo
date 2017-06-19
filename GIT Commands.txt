@@ -1,4 +1,4 @@
-GIT Commands:
+GIT Commands: 
 https://stackoverflow.com/questions/22620393/various-ways-to-remove-local-git-changes
 	
 I just cloned a git repository and checked out a branch. I worked on it, and then decided to remove all my local changes, as I wanted the original copy.
